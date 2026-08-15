@@ -5,11 +5,12 @@ A personal budget tracker that mirrors the monthly spreadsheet in
 Category** and a **budget-vs-actual** panel per category, plus income tracking
 and a running **net**.
 
-Transactions come in three ways, all feeding the same tables:
+Transactions come in four ways, all feeding the same tables:
 
 - **CSV import** — export from your bank and upload (works today, any bank).
 - **Manual entry** — add a row directly, just like the spreadsheet.
-- **Plaid** — automatic bank sync (planned; see below).
+- **Plaid** — automatic bank sync (implemented; see below).
+- **Teller** — alternative automatic sync (implemented; see below).
 
 ## Stack
 
@@ -30,6 +31,48 @@ npm run dev            # http://localhost:3000
 The first time you open the app it asks you to create an account (e.g. "Everyday
 Checking" at America First Credit Union). After that you're on the monthly
 dashboard.
+
+## Setup on a new machine
+
+Secrets and data are **not** in git (see `.gitignore`), so a fresh clone needs a
+few local-only steps to become a working copy:
+
+```bash
+git clone https://github.com/Caelc2216/budget.git
+cd budget
+npm install            # installs deps + runs prisma generate
+npm run db:push        # creates a fresh prisma/dev.db from the schema
+npm run db:seed        # loads categories, budgets, and merchant rules
+npm run dev            # http://localhost:3000
+```
+
+Then restore what git doesn't carry:
+
+1. **`.env`** — recreate it (it's gitignored). At minimum set `DATABASE_URL`;
+   add your Plaid and/or Teller keys to re-enable bank sync. A template:
+   ```
+   DATABASE_URL="file:./dev.db"
+   PLAID_CLIENT_ID=""
+   PLAID_SECRET=""
+   PLAID_ENV="production"      # sandbox | production
+   PLAID_WEBHOOK_URL=""        # leave empty; not needed for manual/scheduled sync
+   NEXT_PUBLIC_TELLER_APPLICATION_ID=""
+   TELLER_ENVIRONMENT="sandbox"
+   TELLER_CERT_PATH=""
+   TELLER_KEY_PATH=""
+   ```
+2. **Bank connections** — the database is fresh, so **re-link your banks**:
+   open the dashboard → **🏦 Connect bank (Plaid)** and log in again. Plaid
+   backfills your transaction history, and your seeded merchant rules
+   auto-categorize them. (Plaid access tokens live only in the old machine's
+   `dev.db`, so they don't transfer — you re-link rather than copy them.)
+3. **Teller cert** (only if using Teller) — download your certificate/key from
+   the Teller dashboard into `certs/` and point `TELLER_CERT_PATH` / `TELLER_KEY_PATH`
+   at them.
+
+To move your **existing data** to a new machine instead of re-linking, copy the
+`prisma/dev.db` file over manually (it's intentionally not in git). Keep it
+private — it contains your financial data.
 
 ## Using it
 
