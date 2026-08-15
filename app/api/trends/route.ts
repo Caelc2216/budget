@@ -1,0 +1,70 @@
+import { NextRequest, NextResponse } from "next/server";
+import { prisma } from "@/lib/db";
+
+// GET /api/trends?months=6
+// Monthly income vs. spending for the last N months (transfers excluded),
+// plus a spending-by-category breakdown for the most recent month.
+export async function GET(req: NextRequest) {
+  const { searchParams } = new URL(req.url);
+  const months = Math.min(24, Math.max(1, Number(searchParams.get("months")) || 6));
+
+  const now = new Date();
+  const startYear = now.getUTCFullYear();
+  const startMonth = now.getUTCMonth(); // 0-based
+  const rangeStart = new Date(Date.UTC(startYear, startMonth - (months - 1), 1));
+  const rangeEnd = new Date(Date.UTC(startYear, startMonth + 1, 1));
+
+  const [categories, txns] = await Promise.all([
+    prisma.category.findMany(),
+    prisma.transaction.findMany({
+      where: { date: { gte: rangeStart, lt: rangeEnd } },
+      select: { date: true, amountCents: true, categoryId: true },
+    }),
+  ]);
+  const kindByCat = new Map(categories.map((c) => [c.id, c.kind]));
+
+  // Prepare month buckets in chronological order.
+  const buckets: { month: string; incomeCents: number; spendingCents: number }[] = [];
+  const index = new Map<string, number>();
+  for (let i = 0; i < months; i++) {
+    const d = new Date(Date.UTC(startYear, startMonth - (months - 1) + i, 1));
+    const key = `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`;
+    index.set(key, buckets.length);
+    buckets.push({ month: key, incomeCents: 0, spendingCents: 0 });
+  }
+
+  const latestKey = buckets[buckets.length - 1].month;
+  const spendByCat = new Map<string, number>();
+
+  for (const t of txns) {
+    const kind = t.categoryId ? kindByCat.get(t.categoryId) : undefined;
+    if (kind === "transfer") continue;
+
+    const key = `${t.date.getUTCFullYear()}-${String(
+      t.date.getUTCMonth() + 1
+    ).padStart(2, "0")}`;
+    const bi = index.get(key);
+    if (bi === undefined) continue;
+
+    if (t.amountCents >= 0) buckets[bi].incomeCents += t.amountCents;
+    else buckets[bi].spendingCents += -t.amountCents;
+
+    if (key === latestKey && t.amountCents < 0) {
+      const catKey = t.categoryId ?? "__uncategorized__";
+      spendByCat.set(catKey, (spendByCat.get(catKey) ?? 0) + -t.amountCents);
+    }
+  }
+
+  const nameById = new Map(categories.map((c) => [c.id, c.name]));
+  const colorById = new Map(categories.map((c) => [c.id, c.color]));
+  const latestByCategory = [...spendByCat.entries()]
+    .map(([catId, cents]) => ({
+      categoryId: catId,
+      name: catId === "__uncategorized__" ? "Uncategorized" : nameById.get(catId) ?? "?",
+      color: catId === "__uncategorized__" ? "#adb5bd" : colorById.get(catId) ?? "#888",
+      spentCents: cents,
+    }))
+    .sort((a, b) => b.spentCents - a.spentCents);
+
+  return NextResponse.json({ months: buckets, latestMonth: latestKey, latestByCategory });
+}

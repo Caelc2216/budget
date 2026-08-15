@@ -1,0 +1,148 @@
+// Budget app data model.
+// Designed to be provider-agnostic: CSV import, Plaid, and manual entry all
+// feed the same Account / Transaction tables. `source` records where a row
+// came from so nothing downstream (categorization, charts) needs to care.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Account {
+  id          String   @id @default(cuid())
+  name        String // e.g. "America First Checking"
+  institution String // e.g. "America First Credit Union"
+  type        String   @default("checking") // checking | savings | credit
+  mask        String? // last 4 digits, if known
+
+  // Plaid linkage (null for CSV-only accounts).
+  plaidItem      PlaidItem? @relation(fields: [plaidItemId], references: [itemId], onDelete: SetNull)
+  plaidItemId    String?
+  plaidAccountId String? // Plaid's account_id, for matching synced transactions
+
+  // Teller linkage (null for CSV-only / Plaid accounts).
+  tellerEnrollment   TellerEnrollment? @relation(fields: [tellerEnrollmentId], references: [enrollmentId], onDelete: SetNull)
+  tellerEnrollmentId String?
+  tellerAccountId    String? // Teller's account id
+
+  transactions Transaction[]
+  imports      ImportBatch[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// A Plaid "Item" = one login at one institution (can expose several accounts).
+// Holds the long-lived access token and the transactions/sync cursor.
+model PlaidItem {
+  id              String    @id @default(cuid())
+  itemId          String    @unique // Plaid item_id
+  accessToken     String // Plaid access_token (sensitive)
+  institutionName String?
+  cursor          String? // transactions/sync cursor for incremental pulls
+  accounts        Account[]
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+}
+
+// A Teller enrollment = one login at one institution (Teller is pull-based, so
+// there's no cursor — we upsert transactions by tellerTransactionId each sync).
+model TellerEnrollment {
+  id              String    @id @default(cuid())
+  enrollmentId    String    @unique // Teller enrollment id
+  accessToken     String // Teller access token (sensitive)
+  institutionName String?
+  accounts        Account[]
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+}
+
+model Transaction {
+  id          String   @id @default(cuid())
+  account     Account  @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  accountId   String
+  date        DateTime
+  description String // raw text from the bank / CSV
+  merchant    String? // cleaned-up name, when we can derive one
+  // Amount in integer cents to avoid floating-point money errors.
+  // Convention: positive = money IN (income/credit), negative = money OUT (spending).
+  amountCents Int
+
+  category   Category? @relation(fields: [categoryId], references: [id])
+  categoryId String?
+
+  source   String   @default("csv") // csv | plaid | manual
+  pending  Boolean  @default(false)
+  // Stable fingerprint used to skip duplicates on re-import (CSV/manual).
+  dedupeHash String
+  // Provider-native transaction ids, for idempotent syncing.
+  plaidTransactionId  String? @unique
+  tellerTransactionId String? @unique
+
+  importBatch   ImportBatch? @relation(fields: [importBatchId], references: [id], onDelete: SetNull)
+  importBatchId String?
+
+  createdAt DateTime @default(now())
+
+  @@unique([accountId, dedupeHash])
+  @@index([date])
+  @@index([categoryId])
+}
+
+model Category {
+  id           String          @id @default(cuid())
+  name         String          @unique
+  color        String          @default("#8884d8")
+  kind         String          @default("expense") // expense | income
+  sortOrder    Int             @default(0)
+  transactions Transaction[]
+  budgets      MonthlyBudget[]
+  createdAt    DateTime        @default(now())
+}
+
+// Per-category spending limit for a given month. Mirrors the "Budget" panel
+// in the user's spreadsheet, where limits change month to month.
+model MonthlyBudget {
+  id         String   @id @default(cuid())
+  month      String // "YYYY-MM"
+  category   Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  categoryId String
+  limitCents Int
+  createdAt  DateTime @default(now())
+
+  @@unique([month, categoryId])
+}
+
+// Learned rule mapping a merchant name to a default category, so imported /
+// entered transactions auto-categorize. Built from history and refined as the
+// user corrects categorizations. Optional amount bounds allow conditional rules
+// (e.g. "Maverik under $10 → Fast Food"); bounds test the ABSOLUTE amount.
+model MerchantRule {
+  id             String   @id @default(cuid())
+  // Lowercased substring to match against the transaction description/merchant.
+  pattern        String
+  categoryId     String
+  minAmountCents Int? // inclusive lower bound on |amount|, if set
+  maxAmountCents Int? // exclusive upper bound on |amount|, if set
+  createdAt      DateTime @default(now())
+
+  // Allow several rules per merchant, distinguished by their amount range.
+  @@unique([pattern, minAmountCents, maxAmountCents])
+}
+
+// Records each CSV upload so an import can be reviewed or rolled back.
+model ImportBatch {
+  id             String        @id @default(cuid())
+  account        Account       @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  accountId      String
+  filename       String
+  rowCount       Int // rows found in the file
+  importedCount  Int // new transactions actually saved
+  skippedCount   Int // duplicates skipped
+  transactions   Transaction[]
+  createdAt      DateTime      @default(now())
+}
