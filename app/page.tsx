@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback, useMemo } from "react";
-import Link from "next/link";
+import AppNav from "@/app/components/AppNav";
 import { usePlaidLink } from "react-plaid-link";
 import { formatCents } from "@/lib/money";
 
@@ -126,12 +126,7 @@ export default function Home() {
     <>
       <header className="topbar">
         <h1>💰 Budget</h1>
-        <nav>
-          <Link href="/">Dashboard</Link>
-          <Link href="/reports">Reports</Link>
-          <Link href="/import">Import CSV</Link>
-          <Link href="/manage">Manage</Link>
-        </nav>
+        <AppNav />
       </header>
 
       <div className="container">

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import Link from "next/link";
+import AppNav from "@/app/components/AppNav";
 
 interface Category {
   id: string;
@@ -46,12 +46,7 @@ export default function ManagePage() {
     <>
       <header className="topbar">
         <h1>💰 Budget</h1>
-        <nav>
-          <Link href="/">Dashboard</Link>
-          <Link href="/reports">Reports</Link>
-          <Link href="/import">Import CSV</Link>
-          <Link href="/manage">Manage</Link>
-        </nav>
+        <AppNav />
       </header>
 
       <div className="container" style={{ maxWidth: 860 }}>
