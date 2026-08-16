@@ -35,6 +35,11 @@ a {
   margin: 0 auto;
   padding: 20px 24px 60px;
 }
+@media (max-width: 600px) {
+  .container {
+    padding: 14px 12px 40px;
+  }
+}
 
 header.topbar {
   background: var(--green);
@@ -45,6 +50,15 @@ header.topbar {
   justify-content: space-between;
   flex-wrap: wrap;
   gap: 12px;
+}
+@media (max-width: 600px) {
+  header.topbar {
+    padding: 12px 14px;
+  }
+  header.topbar nav a {
+    margin-left: 0;
+    margin-right: 14px;
+  }
 }
 
 header.topbar h1 {
@@ -70,12 +84,24 @@ header.topbar nav a:hover {
   align-items: center;
   gap: 12px;
   margin: 20px 0;
+  flex-wrap: wrap;
 }
 .month-nav h2 {
   margin: 0;
   font-size: 20px;
   min-width: 200px;
   text-align: center;
+}
+@media (max-width: 600px) {
+  .month-nav {
+    justify-content: center;
+  }
+  .month-nav h2 {
+    min-width: 0;
+    font-size: 17px;
+    order: -1;
+    width: 100%;
+  }
 }
 
 .layout {
@@ -203,6 +229,11 @@ button.icon:hover {
   grid-template-columns: repeat(3, 1fr);
   gap: 12px;
   margin-bottom: 24px;
+}
+@media (max-width: 480px) {
+  .totals {
+    grid-template-columns: 1fr;
+  }
 }
 .stat {
   background: var(--card);
