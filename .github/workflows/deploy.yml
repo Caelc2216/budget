@@ -13,12 +13,15 @@ jobs:
       # unpack the checkout action from codeload.github.com on every run
       # (and its rate limits) just to do what `git pull` already does here.
       - name: Update code
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          REMOTE="https://x-access-token:${GH_TOKEN}@github.com/Caelc2216/budget.git"
           if [ -d .git ]; then
-            git fetch origin main
-            git reset --hard origin/main
+            git fetch "$REMOTE" main
+            git reset --hard FETCH_HEAD
           else
-            git clone "https://github.com/Caelc2216/budget.git" .
+            git clone "$REMOTE" .
           fi
 
       - name: Install dependencies
