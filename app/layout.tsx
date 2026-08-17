@@ -19,6 +19,21 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
+      <head>
+        {/* Applies a saved theme choice before first paint, so switching to
+            dark mode (when the system default is light, or vice versa)
+            doesn't flash the wrong theme for a moment while React hydrates. */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `try {
+              var t = localStorage.getItem("budget:theme");
+              if (t === "light" || t === "dark") {
+                document.documentElement.setAttribute("data-theme", t);
+              }
+            } catch (e) {}`,
+          }}
+        />
+      </head>
       <body>{children}</body>
     </html>
   );

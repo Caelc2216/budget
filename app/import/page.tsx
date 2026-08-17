@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import AppNav from "@/app/components/AppNav";
+import ThemeToggle from "@/app/components/ThemeToggle";
 
 interface Account {
   id: string;
@@ -59,7 +60,10 @@ export default function ImportPage() {
     <>
       <header className="topbar">
         <h1>💰 Budget</h1>
-        <AppNav />
+        <div className="header-actions">
+          <ThemeToggle />
+          <AppNav />
+        </div>
       </header>
 
       <div className="container" style={{ maxWidth: 640 }}>

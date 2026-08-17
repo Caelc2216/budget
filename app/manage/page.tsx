@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import AppNav from "@/app/components/AppNav";
+import ThemeToggle from "@/app/components/ThemeToggle";
 
 interface Category {
   id: string;
@@ -47,7 +48,10 @@ export default function ManagePage() {
     <>
       <header className="topbar">
         <h1>💰 Budget</h1>
-        <AppNav />
+        <div className="header-actions">
+          <ThemeToggle />
+          <AppNav />
+        </div>
       </header>
 
       <div className="container" style={{ maxWidth: 860 }}>

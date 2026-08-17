@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import AppNav from "@/app/components/AppNav";
+import ThemeToggle from "@/app/components/ThemeToggle";
 import { formatCents } from "@/lib/money";
 
 interface MonthPoint {
@@ -54,7 +55,10 @@ export default function ReportsPage() {
     <>
       <header className="topbar">
         <h1>💰 Budget</h1>
-        <AppNav />
+        <div className="header-actions">
+          <ThemeToggle />
+          <AppNav />
+        </div>
       </header>
 
       <div className="container" style={{ maxWidth: 980 }}>
@@ -119,8 +123,8 @@ function TrendChart({ points }: { points: MonthPoint[] }) {
       <svg width={W} height={H} role="img" aria-label="Income versus spending by month">
         {ticks.map((t, i) => (
           <g key={i}>
-            <line x1={padL} y1={t.y} x2={W - 10} y2={t.y} stroke="#e2e6e2" />
-            <text x={padL - 6} y={t.y + 4} textAnchor="end" fontSize="10" fill="#6b746c">
+            <line x1={padL} y1={t.y} x2={W - 10} y2={t.y} stroke="var(--border)" />
+            <text x={padL - 6} y={t.y + 4} textAnchor="end" fontSize="10" fill="var(--muted)">
               {t.label}
             </text>
           </g>
@@ -156,7 +160,7 @@ function TrendChart({ points }: { points: MonthPoint[] }) {
                 y={H - 10}
                 textAnchor="middle"
                 fontSize="11"
-                fill="#6b746c"
+                fill="var(--muted)"
               >
                 {monthShort(p.month)}
               </text>
@@ -219,10 +223,10 @@ function CategoryDonut({ slices }: { slices: CatSlice[] }) {
               </circle>
             ))}
           </g>
-          <text x={cx} y={cy - 2} textAnchor="middle" fontSize="12" fill="#6b746c">
+          <text x={cx} y={cy - 2} textAnchor="middle" fontSize="12" fill="var(--muted)">
             Total
           </text>
-          <text x={cx} y={cy + 16} textAnchor="middle" fontSize="15" fontWeight={700} fill="#1f2421">
+          <text x={cx} y={cy + 16} textAnchor="middle" fontSize="15" fontWeight={700} fill="var(--text)">
             {formatCents(total)}
           </text>
         </svg>

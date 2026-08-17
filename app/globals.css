@@ -9,6 +9,47 @@
   --muted: #6b746c;
   --red: #e03131;
   --over: #fff0f0;
+  --input-bg: #ffffff;
+  --tint: #eef3ee;
+  --stripe: #fafbfa;
+  --track: #eceeec;
+}
+
+/* Dark mode: follow system preference by default, or an explicit
+   data-theme attribute (set by ThemeToggle) that always wins. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --green: #3d7a45;
+    --green-light: #4a8f53;
+    --green-header: #38824a;
+    --bg: #14181a;
+    --card: #1c2224;
+    --border: #2c3436;
+    --text: #e7ece8;
+    --muted: #8fa197;
+    --red: #ff6b6b;
+    --over: #3a1f1f;
+    --input-bg: #20272a;
+    --tint: #223028;
+    --stripe: #191f21;
+    --track: #2a3234;
+  }
+}
+:root[data-theme="dark"] {
+  --green: #3d7a45;
+  --green-light: #4a8f53;
+  --green-header: #38824a;
+  --bg: #14181a;
+  --card: #1c2224;
+  --border: #2c3436;
+  --text: #e7ece8;
+  --muted: #8fa197;
+  --red: #ff6b6b;
+  --over: #3a1f1f;
+  --input-bg: #20272a;
+  --tint: #223028;
+  --stripe: #191f21;
+  --track: #2a3234;
 }
 
 * {
@@ -120,6 +161,24 @@ header.topbar nav a {
 header.topbar nav a:hover {
   opacity: 1;
   text-decoration: underline;
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.theme-toggle {
+  padding: 4px 8px;
+  font-size: 16px;
+  line-height: 1;
+  border-radius: 6px;
+  opacity: 0.9;
+}
+.theme-toggle:hover {
+  opacity: 1;
+  background: rgba(255, 255, 255, 0.12);
+  color: inherit;
 }
 
 .month-nav {
@@ -236,10 +295,10 @@ th.num {
   font-variant-numeric: tabular-nums;
 }
 tbody tr:nth-child(even) {
-  background: #fafbfa;
+  background: var(--stripe);
 }
 tbody tr:hover {
-  background: #eef3ee;
+  background: var(--tint);
 }
 
 select,
@@ -248,7 +307,7 @@ input {
   padding: 5px 7px;
   border: 1px solid var(--border);
   border-radius: 5px;
-  background: #fff;
+  background: var(--input-bg);
   color: var(--text);
 }
 select.cat {
@@ -259,7 +318,7 @@ select.cat {
 }
 select.cat:hover {
   border-color: var(--border);
-  background: #fff;
+  background: var(--input-bg);
 }
 
 button {
@@ -280,7 +339,7 @@ button.ghost {
   color: var(--green);
 }
 button.ghost:hover {
-  background: #eef3ee;
+  background: var(--tint);
 }
 button.icon {
   border-color: transparent;
@@ -352,7 +411,7 @@ button.icon:hover {
 }
 .bar {
   height: 6px;
-  background: #eceeec;
+  background: var(--track);
   border-radius: 3px;
   margin-top: 6px;
   overflow: hidden;
@@ -374,7 +433,7 @@ button.icon:hover {
   align-items: center;
   flex-wrap: wrap;
   padding: 10px 12px;
-  background: #f2f7f2;
+  background: var(--tint);
   border-bottom: 1px solid var(--border);
 }
 .filter-bar .muted {
@@ -383,7 +442,7 @@ button.icon:hover {
 }
 
 .addrow td {
-  background: #f2f7f2;
+  background: var(--tint);
 }
 .addrow input {
   width: 100%;
@@ -402,7 +461,7 @@ button.icon:hover {
   padding: 2px 8px;
   border-radius: 999px;
   font-size: 12px;
-  background: #eef3ee;
+  background: var(--tint);
   color: var(--green);
 }
 .row-actions {

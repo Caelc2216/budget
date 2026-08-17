@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback, useMemo } from "react";
 import AppNav from "@/app/components/AppNav";
+import ThemeToggle from "@/app/components/ThemeToggle";
 import Collapsible from "@/app/components/Collapsible";
 import { usePlaidLink } from "react-plaid-link";
 import { formatCents } from "@/lib/money";
@@ -127,7 +128,10 @@ export default function Home() {
     <>
       <header className="topbar">
         <h1>💰 Budget</h1>
-        <AppNav />
+        <div className="header-actions">
+          <ThemeToggle />
+          <AppNav />
+        </div>
       </header>
 
       <div className="container">
@@ -685,7 +689,7 @@ function BudgetPanel({
         </div>
       )}
 
-      <div className="budget-row" style={{ background: "#f2f7f2" }}>
+      <div className="budget-row" style={{ background: "var(--tint)" }}>
         <div className="top">
           <span className="name">Total</span>
           <span className="amt">
