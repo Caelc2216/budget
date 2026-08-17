@@ -8,9 +8,18 @@ jobs:
   deploy:
     runs-on: self-hosted
     steps:
-      - uses: actions/checkout@v4
-        with:
-          clean: false
+      # Plain git instead of actions/checkout — this runner is a persistent
+      # machine with the repo already cloned, so there's no need to fetch and
+      # unpack the checkout action from codeload.github.com on every run
+      # (and its rate limits) just to do what `git pull` already does here.
+      - name: Update code
+        run: |
+          if [ -d .git ]; then
+            git fetch origin main
+            git reset --hard origin/main
+          else
+            git clone "https://github.com/Caelc2216/budget.git" .
+          fi
 
       - name: Install dependencies
         run: npm install
