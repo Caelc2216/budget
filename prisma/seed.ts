@@ -177,12 +177,12 @@ async function main() {
     order++;
   }
 
-  // Merchant auto-categorization rules (unbounded — min/max null).
+  // Merchant auto-categorization rules (unbounded — min/max/sign null).
   for (const [pattern, categoryName] of Object.entries(MERCHANT_RULES)) {
     const categoryId = nameToId[categoryName];
     if (!categoryId) continue;
     const existing = await prisma.merchantRule.findFirst({
-      where: { pattern, minAmountCents: null, maxAmountCents: null },
+      where: { pattern, minAmountCents: null, maxAmountCents: null, sign: null },
     });
     if (existing) {
       await prisma.merchantRule.update({ where: { id: existing.id }, data: { categoryId } });
@@ -191,12 +191,46 @@ async function main() {
     }
   }
 
+  // Conditional rules: bounded by amount and/or sign, layered on top of the
+  // unbounded rules above (categorize() prefers the more specific match).
+  type ConditionalRule = {
+    pattern: string;
+    categoryName: string;
+    minAmountCents?: number;
+    maxAmountCents?: number;
+    sign?: "positive" | "negative";
+  };
+  const CONDITIONAL_RULES: ConditionalRule[] = [
+    // Maverik is a gas station that also sells fast food; small charges are food.
+    { pattern: "maverik", categoryName: "Fast Food", maxAmountCents: 1000 },
+    // Venmo: money coming in is a paycheck-style payment, money going out is fun spending.
+    { pattern: "venmo", categoryName: "Paycheck", sign: "positive" },
+    { pattern: "venmo", categoryName: "Entertainment", sign: "negative" },
+  ];
+  for (const r of CONDITIONAL_RULES) {
+    const categoryId = nameToId[r.categoryName];
+    if (!categoryId) continue;
+    const minAmountCents = r.minAmountCents ?? null;
+    const maxAmountCents = r.maxAmountCents ?? null;
+    const sign = r.sign ?? null;
+    const existing = await prisma.merchantRule.findFirst({
+      where: { pattern: r.pattern, minAmountCents, maxAmountCents, sign },
+    });
+    if (existing) {
+      await prisma.merchantRule.update({ where: { id: existing.id }, data: { categoryId } });
+    } else {
+      await prisma.merchantRule.create({
+        data: { pattern: r.pattern, categoryId, minAmountCents, maxAmountCents, sign },
+      });
+    }
+  }
+
   const totalCats =
     EXPENSE_CATEGORIES.length + INCOME_CATEGORIES.length + TRANSFER_CATEGORIES.length;
   console.log(
     `Seeded ${totalCats} categories, ` +
       `${EXPENSE_CATEGORIES.length} budget targets for ${currentMonth()}, ` +
-      `${Object.keys(MERCHANT_RULES).length} merchant rules.`
+      `${Object.keys(MERCHANT_RULES).length + CONDITIONAL_RULES.length} merchant rules.`
   );
 }
 

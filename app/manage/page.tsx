@@ -17,6 +17,7 @@ interface Rule {
   categoryName: string;
   minAmountCents: number | null;
   maxAmountCents: number | null;
+  sign: "positive" | "negative" | null;
 }
 
 const KIND_LABEL: Record<string, string> = {
@@ -185,6 +186,7 @@ function RulesCard({
   const [categoryId, setCategoryId] = useState("");
   const [minAmount, setMinAmount] = useState("");
   const [maxAmount, setMaxAmount] = useState("");
+  const [sign, setSign] = useState<"" | "positive" | "negative">("");
   const [applyToExisting, setApplyToExisting] = useState(true);
 
   useEffect(() => {
@@ -196,13 +198,21 @@ function RulesCard({
     const res = await fetch("/api/rules", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ pattern, categoryId, minAmount, maxAmount, applyToExisting }),
+      body: JSON.stringify({
+        pattern,
+        categoryId,
+        minAmount,
+        maxAmount,
+        sign: sign || null,
+        applyToExisting,
+      }),
     });
     const d = await res.json();
     if (d.updated > 0) alert(`Applied to ${d.updated} existing transaction(s).`);
     setPattern("");
     setMinAmount("");
     setMaxAmount("");
+    setSign("");
     onChange();
   }
 
@@ -214,10 +224,13 @@ function RulesCard({
   function bounds(r: Rule): string {
     const min = r.minAmountCents != null ? `$${(r.minAmountCents / 100).toFixed(2)}` : null;
     const max = r.maxAmountCents != null ? `$${(r.maxAmountCents / 100).toFixed(2)}` : null;
-    if (min && max) return `${min}–<${max}`;
-    if (max) return `<${max}`;
-    if (min) return `≥${min}`;
-    return "";
+    const parts: string[] = [];
+    if (min && max) parts.push(`${min}–<${max}`);
+    else if (max) parts.push(`<${max}`);
+    else if (min) parts.push(`≥${min}`);
+    if (r.sign === "positive") parts.push("incoming (+)");
+    if (r.sign === "negative") parts.push("outgoing (−)");
+    return parts.join(", ");
   }
 
   return (
@@ -283,6 +296,15 @@ function RulesCard({
           style={{ width: 60 }}
           title="Only apply below this amount (optional)"
         />
+        <select
+          value={sign}
+          onChange={(e) => setSign(e.target.value as "" | "positive" | "negative")}
+          title="Only apply to money in (+) or out (−) (optional)"
+        >
+          <option value="">Any direction</option>
+          <option value="positive">Incoming (+)</option>
+          <option value="negative">Outgoing (−)</option>
+        </select>
         <label className="field" style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
           <input
             type="checkbox"

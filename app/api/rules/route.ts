@@ -16,11 +16,13 @@ export async function GET() {
 }
 
 // POST /api/rules — remember a merchant → category mapping, optionally bounded
-// by amount. Body: { pattern, categoryId, minAmount?, maxAmount?, applyToExisting? }
+// by amount and/or sign. Body: { pattern, categoryId, minAmount?, maxAmount?,
+// sign?, applyToExisting? }
 // minAmount/maxAmount are dollars; bounds test the ABSOLUTE transaction amount
 // (min inclusive, max exclusive), enabling rules like "Maverik under $10 → Fast Food".
+// sign is "positive" | "negative", enabling rules like "Venmo incoming → Paycheck".
 export async function POST(req: NextRequest) {
-  const { pattern, categoryId, minAmount, maxAmount, applyToExisting } =
+  const { pattern, categoryId, minAmount, maxAmount, sign, applyToExisting } =
     await req.json();
   const clean = String(pattern ?? "").trim().toLowerCase();
   if (!clean || !categoryId) {
@@ -34,12 +36,14 @@ export async function POST(req: NextRequest) {
     minAmount === "" || minAmount == null ? null : parseAmountToCents(String(minAmount));
   const maxAmountCents =
     maxAmount === "" || maxAmount == null ? null : parseAmountToCents(String(maxAmount));
+  const signValue: "positive" | "negative" | null =
+    sign === "positive" || sign === "negative" ? sign : null;
 
-  // Upsert on (pattern, min, max): update the category if this exact rule
-  // already exists, otherwise create it. (Nulls make compound-unique upsert
-  // finicky, so match-then-write explicitly.)
+  // Upsert on (pattern, min, max, sign): update the category if this exact
+  // rule already exists, otherwise create it. (Nulls make compound-unique
+  // upsert finicky, so match-then-write explicitly.)
   const existing = await prisma.merchantRule.findFirst({
-    where: { pattern: clean, minAmountCents, maxAmountCents },
+    where: { pattern: clean, minAmountCents, maxAmountCents, sign: signValue },
   });
   if (existing) {
     await prisma.merchantRule.update({
@@ -48,7 +52,7 @@ export async function POST(req: NextRequest) {
     });
   } else {
     await prisma.merchantRule.create({
-      data: { pattern: clean, categoryId, minAmountCents, maxAmountCents },
+      data: { pattern: clean, categoryId, minAmountCents, maxAmountCents, sign: signValue },
     });
   }
 

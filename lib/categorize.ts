@@ -26,14 +26,19 @@ export async function categorize(
     (r) =>
       text.includes(r.pattern) &&
       (r.minAmountCents == null || abs >= r.minAmountCents) &&
-      (r.maxAmountCents == null || abs < r.maxAmountCents)
+      (r.maxAmountCents == null || abs < r.maxAmountCents) &&
+      (r.sign == null ||
+        (r.sign === "positive" && amountCents >= 0) ||
+        (r.sign === "negative" && amountCents < 0))
   );
 
-  // Prefer the most specific rule: an amount-bounded rule beats a general one,
-  // then a longer (more specific) pattern wins.
+  // Prefer the most specific rule: an amount- or sign-bounded rule beats a
+  // general one, then a longer (more specific) pattern wins.
   matches.sort((a, b) => {
-    const aBounded = a.minAmountCents != null || a.maxAmountCents != null ? 1 : 0;
-    const bBounded = b.minAmountCents != null || b.maxAmountCents != null ? 1 : 0;
+    const aBounded =
+      a.minAmountCents != null || a.maxAmountCents != null || a.sign != null ? 1 : 0;
+    const bBounded =
+      b.minAmountCents != null || b.maxAmountCents != null || b.sign != null ? 1 : 0;
     if (aBounded !== bBounded) return bBounded - aBounded;
     return b.pattern.length - a.pattern.length;
   });
