@@ -51,7 +51,7 @@ export default function ManagePage() {
 
       <div className="container" style={{ maxWidth: 860 }}>
         <h2>Manage</h2>
-        <div className="layout" style={{ gridTemplateColumns: "1fr 1fr" }}>
+        <div className="layout-split">
           <CategoriesCard categories={categories} onChange={load} />
           <RulesCard rules={rules} categories={categories} onChange={load} />
         </div>

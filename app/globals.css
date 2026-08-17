@@ -159,6 +159,18 @@ header.topbar nav a:hover {
   }
 }
 
+.layout-split {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  align-items: start;
+}
+@media (max-width: 900px) {
+  .layout-split {
+    grid-template-columns: 1fr;
+  }
+}
+
 .card {
   background: var(--card);
   border: 1px solid var(--border);
