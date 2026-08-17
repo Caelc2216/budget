@@ -70,7 +70,7 @@ header.topbar {
     display: none;
   }
   body {
-    padding-bottom: 64px;
+    padding-bottom: calc(64px + env(safe-area-inset-bottom, 0px));
   }
   .bottom-tabs {
     display: flex;
@@ -81,7 +81,7 @@ header.topbar {
     z-index: 20;
     background: var(--green);
     border-top: 1px solid var(--green-light);
-    padding-bottom: env(safe-area-inset-bottom, 0);
+    padding-bottom: max(8px, env(safe-area-inset-bottom, 0px));
   }
   .bottom-tabs a {
     flex: 1;
@@ -172,6 +172,20 @@ header.topbar nav a:hover {
   color: #fff;
   font-size: 15px;
   font-weight: 600;
+}
+.card h3.collapsible-header {
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  user-select: none;
+}
+.card h3.collapsible-header .chevron {
+  transition: transform 0.15s ease;
+  font-size: 12px;
+}
+.card h3.collapsible-header .chevron.open {
+  transform: rotate(180deg);
 }
 
 .table-wrap {

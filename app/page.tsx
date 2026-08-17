@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback, useMemo } from "react";
 import AppNav from "@/app/components/AppNav";
+import Collapsible from "@/app/components/Collapsible";
 import { usePlaidLink } from "react-plaid-link";
 import { formatCents } from "@/lib/money";
 
@@ -196,8 +197,7 @@ export default function Home() {
         <AccountsBar accounts={accounts} onChange={load} />
 
         <div className="layout">
-          <div className="card">
-            <h3>Transactions</h3>
+          <Collapsible id="transactions" title="Transactions">
             <TxnTable
               txns={txns}
               categories={categories}
@@ -205,7 +205,7 @@ export default function Home() {
               month={month}
               onChange={load}
             />
-          </div>
+          </Collapsible>
 
           {summary && (
             <BudgetPanel
@@ -633,8 +633,7 @@ function BudgetPanel({
   const totalSpent = summary.expenseRows.reduce((s, r) => s + r.spentCents, 0);
 
   return (
-    <div className="card">
-      <h3>Budget</h3>
+    <Collapsible id="budget" title="Budget">
       {summary.expenseRows.map((r) => {
         const pct =
           r.budgetCents > 0
@@ -695,7 +694,7 @@ function BudgetPanel({
           </span>
         </div>
       </div>
-    </div>
+    </Collapsible>
   );
 }
 
@@ -815,8 +814,8 @@ function AccountsBar({
 }) {
   const [adding, setAdding] = useState(false);
   return (
-    <div className="card" style={{ marginBottom: 24 }}>
-      <h3>Accounts</h3>
+    <div style={{ marginBottom: 24 }}>
+      <Collapsible id="accounts" title="Accounts">
       <div style={{ padding: "12px 16px" }}>
         <div
           style={{
@@ -877,6 +876,7 @@ function AccountsBar({
           </div>
         )}
       </div>
+      </Collapsible>
     </div>
   );
 }

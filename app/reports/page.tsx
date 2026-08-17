@@ -73,7 +73,7 @@ export default function ReportsPage() {
         {!data ? (
           <p className="muted">Loading…</p>
         ) : (
-          <div className="layout" style={{ gridTemplateColumns: "1fr 360px" }}>
+          <div className="layout">
             <div className="card">
               <h3>Income vs. Spending</h3>
               <div style={{ padding: 16 }}>
