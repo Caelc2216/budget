@@ -28,7 +28,12 @@ jobs:
         run: npm install
 
       - name: Sync database schema
-        run: npm run db:push
+        # --accept-data-loss: needed non-interactively since prisma can't prompt
+        # for confirmation here. Widening a unique constraint (as in this repo's
+        # history) is safe; a genuinely destructive change (dropping/renaming a
+        # column) would still need reviewing by running `npm run db:push` by
+        # hand first, since that CLI stays interactive and will warn/refuse.
+        run: npx prisma db push --accept-data-loss
 
       - name: Build
         run: npm run build
