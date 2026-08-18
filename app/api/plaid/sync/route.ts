@@ -27,6 +27,7 @@ export async function POST() {
     const errors = results
       .filter((r) => r.error)
       .map((r) => ({
+        itemId: r.itemId,
         institution: r.institutionName ?? r.itemId,
         error: r.error,
         errorCode: r.errorCode,

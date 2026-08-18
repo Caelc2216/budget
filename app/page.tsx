@@ -1016,10 +1016,19 @@ function TellerControls({ onChange }: { onChange: () => void }) {
 
 // Connect a bank via Plaid Link and pull data. Degrades gracefully when Plaid
 // isn't configured (the link-token route returns 501 with a message).
+interface PlaidSyncError {
+  itemId: string;
+  institution: string;
+  error: string;
+  errorCode?: string;
+}
+
 function PlaidControls({ onChange }: { onChange: () => void }) {
   const [token, setToken] = useState<string | null>(null);
+  const [reconnectItemId, setReconnectItemId] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [status, setStatus] = useState<{ items: number } | null>(null);
+  const [loginRequired, setLoginRequired] = useState<PlaidSyncError[]>([]);
 
   useEffect(() => {
     fetch("/api/plaid/sync")
@@ -1032,6 +1041,15 @@ function PlaidControls({ onChange }: { onChange: () => void }) {
     token,
     onSuccess: async (public_token) => {
       setBusy(true);
+      if (reconnectItemId) {
+        // Update mode: the item's access_token is unchanged, so just re-sync
+        // rather than exchanging a new token.
+        await runSync();
+        setBusy(false);
+        setToken(null);
+        setReconnectItemId(null);
+        return;
+      }
       const res = await fetch("/api/plaid/exchange", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -1062,6 +1080,7 @@ function PlaidControls({ onChange }: { onChange: () => void }) {
     const d = await res.json().catch(() => ({}));
     setBusy(false);
     if (d.link_token) {
+      setReconnectItemId(null);
       setToken(d.link_token);
     } else {
       alert(
@@ -1072,25 +1091,58 @@ function PlaidControls({ onChange }: { onChange: () => void }) {
     }
   }
 
-  async function syncNow() {
+  async function reconnect(itemId: string) {
     setBusy(true);
-    const res = await fetch("/api/plaid/sync", { method: "POST" });
+    const res = await fetch("/api/plaid/link-token", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ itemId }),
+    });
     const d = await res.json().catch(() => ({}));
     setBusy(false);
+    if (d.link_token) {
+      setReconnectItemId(itemId);
+      setToken(d.link_token);
+    } else {
+      alert(
+        d.error
+          ? `Plaid: ${d.error}${d.error_code ? ` (${d.error_code})` : ""}`
+          : "Plaid request failed. See PLAID.md."
+      );
+    }
+  }
+
+  async function runSync() {
+    const res = await fetch("/api/plaid/sync", { method: "POST" });
+    const d = await res.json().catch(() => ({}));
     if (res.ok) {
+      const errors: PlaidSyncError[] = d.errors ?? [];
+      setLoginRequired(errors.filter((e) => e.errorCode === "ITEM_LOGIN_REQUIRED"));
+      onChange();
+    }
+    return d;
+  }
+
+  async function syncNow() {
+    setBusy(true);
+    const d = await runSync();
+    setBusy(false);
+    if (d.items != null) {
       let msg = `Synced ${d.items} item(s): +${d.added} added, ${d.modified} modified, ${d.removed} removed.`;
-      if (d.errors && d.errors.length) {
+      const otherErrors = (d.errors ?? []).filter(
+        (e: PlaidSyncError) => e.errorCode !== "ITEM_LOGIN_REQUIRED"
+      );
+      if (otherErrors.length) {
         msg +=
           "\n\nSome banks reported an error:\n" +
-          d.errors
+          otherErrors
             .map(
-              (e: { institution: string; error: string; errorCode?: string }) =>
+              (e: PlaidSyncError) =>
                 `• ${e.institution}: ${e.error}${e.errorCode ? ` (${e.errorCode})` : ""}`
             )
             .join("\n");
       }
       alert(msg);
-      onChange();
     } else {
       alert(d.error ?? "Sync failed.");
     }
@@ -1098,6 +1150,18 @@ function PlaidControls({ onChange }: { onChange: () => void }) {
 
   return (
     <div className="row-actions">
+      {loginRequired.map((e) => (
+        <button
+          key={e.itemId}
+          className="ghost"
+          style={{ color: "var(--red)", borderColor: "var(--red)" }}
+          onClick={() => reconnect(e.itemId)}
+          disabled={busy}
+          title={e.error}
+        >
+          ⚠️ Reconnect {e.institution}
+        </button>
+      ))}
       <button className="ghost" onClick={connect} disabled={busy}>
         🏦 Connect bank (Plaid)
       </button>
