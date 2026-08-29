@@ -67,6 +67,21 @@ body {
   font-size: 14px;
 }
 
+/* Hide the scrollbar when installed to the iOS home screen (standalone PWA). */
+@media (display-mode: standalone) {
+  html,
+  body {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  html::-webkit-scrollbar,
+  body::-webkit-scrollbar {
+    display: none;
+    width: 0;
+    height: 0;
+  }
+}
+
 a {
   color: var(--green-light);
 }
