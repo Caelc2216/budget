@@ -73,7 +73,7 @@ export async function POST(req: NextRequest) {
   });
 
   for (const record of rows) {
-    const normalized = normalizeRow(record, cols, preset);
+    const normalized = normalizeRow(record, cols, preset, account.type);
     if (!normalized) {
       skipped++;
       continue;

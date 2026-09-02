@@ -74,11 +74,17 @@ export function detectColumns(headers: string[]): ColumnMap | null {
 /**
  * Convert one raw CSV record into a normalized row using the column map.
  * Handles both single-amount and split debit/credit layouts.
+ *
+ * `accountType` matters for the split layout: on a checking/savings account
+ * (an asset account), Debit = money out = spending. On a credit card (a
+ * liability account), it's the reverse — Credit = a purchase (balance owed
+ * goes up), Debit = a payment (balance owed goes down).
  */
 export function normalizeRow(
   record: Record<string, string>,
   cols: ColumnMap,
-  preset: BankPreset
+  preset: BankPreset,
+  accountType?: string
 ): NormalizedRow | null {
   const date = (record[cols.dateKey] ?? "").trim();
   const description = (record[cols.descKey] ?? "").trim();
@@ -87,11 +93,13 @@ export function normalizeRow(
   let amountCents: number | null = null;
 
   if (cols.debitKey || cols.creditKey) {
-    // Split layout: debit is money out, credit is money in.
+    // Split layout: on deposit accounts debit is money out, credit is money
+    // in; on a credit card that polarity is reversed.
     const debit = cols.debitKey ? parseAmountToCents(record[cols.debitKey]) : null;
     const credit = cols.creditKey ? parseAmountToCents(record[cols.creditKey]) : null;
-    if (debit && debit !== 0) amountCents = -Math.abs(debit);
-    else if (credit && credit !== 0) amountCents = Math.abs(credit);
+    const debitIsSpend = accountType !== "credit";
+    if (debit && debit !== 0) amountCents = debitIsSpend ? -Math.abs(debit) : Math.abs(debit);
+    else if (credit && credit !== 0) amountCents = debitIsSpend ? Math.abs(credit) : -Math.abs(credit);
     else amountCents = 0;
   } else if (cols.amountKey) {
     const parsed = parseAmountToCents(record[cols.amountKey]);
