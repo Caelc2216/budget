@@ -85,6 +85,32 @@ export async function POST(req: NextRequest) {
     }
 
     const hash = dedupeHash(date, normalized.amountCents, normalized.description);
+
+    // The dedupeHash above only catches an exact re-import of this same CSV
+    // (same description text) — CSV-vs-CSV dedup already relies on that
+    // description match to tell apart two legitimate same-day, same-amount
+    // rows. It can't catch the same real-world transaction already present
+    // from another source (e.g. Plaid), since a bank's CSV description
+    // rarely matches Plaid's cleaned-up merchant name. Guard against that
+    // separately, scoped to non-CSV sources only: same account + same day +
+    // same amount already synced from Plaid/Teller/manual entry is almost
+    // certainly the same transaction.
+    const dayStart = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
+    const dayEnd = new Date(dayStart.getTime() + 24 * 60 * 60 * 1000);
+    const crossSourceDupe = await prisma.transaction.findFirst({
+      where: {
+        accountId,
+        amountCents: normalized.amountCents,
+        date: { gte: dayStart, lt: dayEnd },
+        source: { not: "csv" },
+      },
+      select: { id: true },
+    });
+    if (crossSourceDupe) {
+      skipped++;
+      continue;
+    }
+
     const categoryId = await categorize(
       normalized.description,
       normalized.amountCents
