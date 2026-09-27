@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { freelanceTaxSetAside } from "@/lib/taxes";
 
 // GET /api/summary?month=YYYY-MM
 // Returns per-category budget vs. actual spend, plus income/spending/net totals.
@@ -14,8 +15,9 @@ export async function GET(req: NextRequest) {
   const start = new Date(Date.UTC(y, m - 1, 1));
   const end = new Date(Date.UTC(y, m, 1));
 
-  const [categories, budgets, txns] = await Promise.all([
+  const [categories, accounts, budgets, txns] = await Promise.all([
     prisma.category.findMany({ orderBy: { sortOrder: "asc" } }),
+    prisma.account.findMany({ select: { id: true, name: true } }),
     // All budgets up to and including this month, so a month with no explicit
     // targets inherits the most recent prior month's values (carry-forward).
     prisma.monthlyBudget.findMany({
@@ -24,7 +26,7 @@ export async function GET(req: NextRequest) {
     }),
     prisma.transaction.findMany({
       where: { date: { gte: start, lt: end } },
-      select: { categoryId: true, amountCents: true },
+      select: { categoryId: true, amountCents: true, accountId: true, description: true },
     }),
   ]);
 
@@ -32,6 +34,7 @@ export async function GET(req: NextRequest) {
   // between your own accounts (e.g. paying off a credit card from savings) is
   // neither income nor spending — the underlying purchases were already counted.
   const kindByCat = new Map(categories.map((c) => [c.id, c.kind]));
+  const setAsideFor = freelanceTaxSetAside(accounts);
 
   // Later months overwrite earlier ones, leaving the latest effective budget.
   const budgetByCat = new Map<string, number>();
@@ -40,10 +43,19 @@ export async function GET(req: NextRequest) {
   let incomeCents = 0;
   let spendingCents = 0;
   let transfersCents = 0;
+  let taxSetAsideCents = 0;
   let uncategorizedCents = 0;
 
   for (const t of txns) {
     const kind = t.categoryId ? kindByCat.get(t.categoryId) : undefined;
+
+    // Transfers into Freelance Taxes are the one transfer that counts: they're
+    // subtracted from income below (see lib/taxes.ts).
+    const setAside = setAsideFor({ ...t, kind });
+    if (setAside > 0) {
+      taxSetAsideCents += setAside;
+      continue;
+    }
 
     if (kind === "transfer") {
       transfersCents += Math.abs(t.amountCents);
@@ -74,6 +86,7 @@ export async function GET(req: NextRequest) {
     }));
 
   const totalBudgetCents = expenseRows.reduce((s, r) => s + r.budgetCents, 0);
+  incomeCents -= taxSetAsideCents;
 
   return NextResponse.json({
     month,
@@ -85,6 +98,7 @@ export async function GET(req: NextRequest) {
       netCents: incomeCents - spendingCents,
       totalBudgetCents,
       transfersCents,
+      taxSetAsideCents,
     },
   });
 }

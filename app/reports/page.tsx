@@ -131,7 +131,8 @@ function TrendChart({ points }: { points: MonthPoint[] }) {
         ))}
         {points.map((p, i) => {
           const gx = padL + i * groupW + groupW / 2;
-          const incH = (p.incomeCents / max) * plotH;
+          // Income can dip below zero in a month where tax set-asides exceed it.
+          const incH = (Math.max(0, p.incomeCents) / max) * plotH;
           const spH = (p.spendingCents / max) * plotH;
           return (
             <g key={p.month}>

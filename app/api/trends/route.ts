@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { freelanceTaxSetAside } from "@/lib/taxes";
 
 // GET /api/trends?months=6
-// Monthly income vs. spending for the last N months (transfers excluded),
+// Monthly income vs. spending for the last N months (transfers excluded, and
+// Freelance Taxes set-asides subtracted from income),
 // plus a spending-by-category breakdown for the most recent month.
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
@@ -14,14 +16,22 @@ export async function GET(req: NextRequest) {
   const rangeStart = new Date(Date.UTC(startYear, startMonth - (months - 1), 1));
   const rangeEnd = new Date(Date.UTC(startYear, startMonth + 1, 1));
 
-  const [categories, txns] = await Promise.all([
+  const [categories, accounts, txns] = await Promise.all([
     prisma.category.findMany(),
+    prisma.account.findMany({ select: { id: true, name: true } }),
     prisma.transaction.findMany({
       where: { date: { gte: rangeStart, lt: rangeEnd } },
-      select: { date: true, amountCents: true, categoryId: true },
+      select: {
+        date: true,
+        amountCents: true,
+        categoryId: true,
+        accountId: true,
+        description: true,
+      },
     }),
   ]);
   const kindByCat = new Map(categories.map((c) => [c.id, c.kind]));
+  const setAsideFor = freelanceTaxSetAside(accounts);
 
   // Prepare month buckets in chronological order.
   const buckets: { month: string; incomeCents: number; spendingCents: number }[] = [];
@@ -38,13 +48,19 @@ export async function GET(req: NextRequest) {
 
   for (const t of txns) {
     const kind = t.categoryId ? kindByCat.get(t.categoryId) : undefined;
-    if (kind === "transfer") continue;
 
     const key = `${t.date.getUTCFullYear()}-${String(
       t.date.getUTCMonth() + 1
     ).padStart(2, "0")}`;
     const bi = index.get(key);
     if (bi === undefined) continue;
+
+    const setAside = setAsideFor({ ...t, kind });
+    if (setAside > 0) {
+      buckets[bi].incomeCents -= setAside;
+      continue;
+    }
+    if (kind === "transfer") continue;
 
     if (t.amountCents >= 0) buckets[bi].incomeCents += t.amountCents;
     else buckets[bi].spendingCents += -t.amountCents;

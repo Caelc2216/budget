@@ -45,6 +45,7 @@ interface Summary {
     netCents: number;
     totalBudgetCents: number;
     transfersCents: number;
+    taxSetAsideCents: number;
   };
 }
 
@@ -172,6 +173,12 @@ export default function Home() {
               <div className="value pos">
                 {formatCents(summary.totals.incomeCents)}
               </div>
+              {summary.totals.taxSetAsideCents > 0 && (
+                <div className="amt" style={{ marginTop: 4 }}>
+                  after {formatCents(summary.totals.taxSetAsideCents)} set aside
+                  for freelance taxes
+                </div>
+              )}
             </div>
             <div className="stat">
               <div className="label">Spending</div>
