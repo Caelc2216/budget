@@ -1,0 +1,17 @@
+name: Backup database
+
+on:
+  schedule:
+    # Nightly at 09:00 UTC (2–3am Mountain). GitHub may start scheduled runs
+    # late, and pauses them after 60 days with no pushes to the repo.
+    - cron: "0 9 * * *"
+  workflow_dispatch: # allow running it by hand from the Actions tab
+
+jobs:
+  backup:
+    runs-on: self-hosted
+    steps:
+      # No checkout: this runs in the same folder the deploy workflow keeps
+      # up to date, which is also where the live SQLite database lives.
+      - name: Back up to Google Drive
+        run: npx tsx scripts/backup-db.ts

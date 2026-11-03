@@ -152,6 +152,8 @@ and it will remember that merchant next time.
   income**. The budget panel shows spending as positive magnitudes.
 - `prisma/dev.db` and any `.env` are **gitignored** — personal financial data is
   never committed.
+- The database is backed up nightly to Google Drive, and the 3 most recent
+  backups are kept. See [BACKUPS.md](BACKUPS.md) for setup and restoring.
 
 ## Data model
 

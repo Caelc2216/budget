@@ -27,6 +27,13 @@ jobs:
       - name: Install dependencies
         run: npm install
 
+      - name: Back up database
+        # Snapshot to Google Drive before the schema push below, which can drop
+        # data. Doesn't block the deploy if the backup fails (e.g. Drive is
+        # unreachable) — check this step's log if the deploy shows a warning.
+        continue-on-error: true
+        run: npx tsx scripts/backup-db.ts
+
       - name: Sync database schema
         # --accept-data-loss: needed non-interactively since prisma can't prompt
         # for confirmation here. Widening a unique constraint (as in this repo's
