@@ -19,7 +19,14 @@ interface CatSlice {
 interface Trends {
   months: MonthPoint[];
   latestMonth: string;
+  currentMonth: string;
   latestByCategory: CatSlice[];
+}
+
+function shiftMonth(month: string, delta: number): string {
+  const [y, m] = month.split("-").map(Number);
+  const d = new Date(Date.UTC(y, m - 1 + delta, 1));
+  return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`;
 }
 
 function monthShort(month: string): string {
@@ -40,12 +47,15 @@ function monthLong(month: string): string {
 
 export default function ReportsPage() {
   const [range, setRange] = useState(6);
+  const [catMonth, setCatMonth] = useState<string | null>(null); // null = current month
   const [data, setData] = useState<Trends | null>(null);
 
   const load = useCallback(async () => {
-    const d = await fetch(`/api/trends?months=${range}`).then((r) => r.json());
+    const qs = new URLSearchParams({ months: String(range) });
+    if (catMonth) qs.set("month", catMonth);
+    const d = await fetch(`/api/trends?${qs}`).then((r) => r.json());
     setData(d);
-  }, [range]);
+  }, [range, catMonth]);
 
   useEffect(() => {
     load();
@@ -85,7 +95,31 @@ export default function ReportsPage() {
               </div>
             </div>
             <div className="card">
-              <h3>Spending by category — {monthLong(data.latestMonth)}</h3>
+              <h3 className="month-nav-header">
+                <span style={{ marginRight: "auto" }}>
+                  Spending by category — {monthLong(data.latestMonth)}
+                </span>
+                <button
+                  type="button"
+                  className="month-nav-btn"
+                  aria-label="Previous month"
+                  onClick={() => setCatMonth(shiftMonth(data.latestMonth, -1))}
+                >
+                  ‹
+                </button>
+                <button
+                  type="button"
+                  className="month-nav-btn"
+                  aria-label="Next month"
+                  disabled={data.latestMonth >= data.currentMonth}
+                  onClick={() => {
+                    const next = shiftMonth(data.latestMonth, 1);
+                    setCatMonth(next >= data.currentMonth ? null : next);
+                  }}
+                >
+                  ›
+                </button>
+              </h3>
               <div style={{ padding: 16 }}>
                 <CategoryDonut slices={data.latestByCategory} />
               </div>

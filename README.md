@@ -103,8 +103,8 @@ private — it contains your financial data.
 
 - **Income vs. Spending** bar chart over the last 3/6/12 months (transfers
   excluded).
-- **Spending by category** donut for the latest month, with a percentage
-  breakdown. Rendered as inline SVG — no external chart library.
+- **Spending by category** donut for the current month (use the ‹ ›
+  arrows to step back through earlier months), with a percentage breakdown. Rendered as inline SVG — no external chart library.
 
 **Manage** (`/manage`)
 

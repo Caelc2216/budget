@@ -266,6 +266,30 @@ header.topbar nav a:hover {
   justify-content: space-between;
   user-select: none;
 }
+.card h3.month-nav-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.month-nav-btn {
+  background: rgba(255, 255, 255, 0.15);
+  border: none;
+  color: #fff;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.month-nav-btn:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.28);
+}
+.month-nav-btn:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
 .card h3.collapsible-header .chevron {
   transition: transform 0.15s ease;
   font-size: 12px;
