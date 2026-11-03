@@ -2,7 +2,7 @@
 // UI has something to show. Run after `npm run db:seed`:
 //   npx tsx prisma/sample-data.ts
 // Re-running replaces the previous sample data (source = "sample").
-import { PrismaClient } from "@prisma/client";
+import { Prisma, PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
@@ -43,7 +43,7 @@ async function main() {
   await prisma.transaction.deleteMany({ where: { source: "sample" } });
 
   const now = new Date();
-  const rows = [];
+  const rows: Prisma.TransactionCreateManyInput[] = [];
   for (let back = 0; back < 8; back++) {
     const y = now.getUTCFullYear();
     const m = now.getUTCMonth() - back;
